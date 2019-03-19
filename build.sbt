@@ -5,7 +5,6 @@ version := "0.1"
 scalaVersion := "2.12.8"
 
 scalacOptions ++= Seq(
-  "-Ybackend-parallelism", java.lang.Runtime.getRuntime.availableProcessors().toString,
   "-Ypartial-unification",
   "-Xfatal-warnings",
   "-unchecked",
