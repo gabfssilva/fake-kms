@@ -4,7 +4,19 @@ version := "0.1"
 
 scalaVersion := "2.12.8"
 
-scalacOptions := Seq("-Ypartial-unification", "-Xfatal-warnings", "-unchecked", "-deprecation")
+scalacOptions ++= Seq(
+  "-Ybackend-parallelism", java.lang.Runtime.getRuntime.availableProcessors().toString,
+  "-Ypartial-unification",
+  "-Xfatal-warnings",
+  "-unchecked",
+  "-deprecation",
+  "-explaintypes",
+  "-feature",
+  "-language:postfixOps"
+)
+
+assemblyJarName in assembly := "fake-kms-fat.jar"
+test in assembly := {}
 
 val akkaHttp = "10.1.7"
 val akka = "2.5.19"
@@ -21,7 +33,6 @@ libraryDependencies ++= Seq(
   "de.heikoseeberger" %% "akka-http-circe" % heikoseebergerAkkaHttpCirce,
   
   "com.beachape" %% "enumeratum" % enumeratum,
-  "com.beachape" %% "enumeratum-circe" % enumeratum,
   
   "ch.qos.logback" % "logback-classic" % "1.2.3",
 
@@ -30,10 +41,9 @@ libraryDependencies ++= Seq(
     name = "netty-nio-client"
   ), ExclusionRule(organization = "io.netty")),
 
+  "com.github.matsluni" %% "aws-spi-akka-http" % "0.0.4",
+
   "io.circe" %% "circe-core" % circe,
-  "io.circe" %% "circe-generic" % circe,
-  "io.circe" %% "circe-generic-extras" % circe,
-  "io.circe" %% "circe-parser" % circe,
 
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttp % "test",

@@ -1,0 +1,97 @@
+version: 2.1
+
+defaults: &defaults
+  working_directory: ~/repo
+  docker:
+    - image: circleci/openjdk:8-jdk
+
+jobs:
+  build:
+    <<: *defaults
+
+    docker:
+      - image: circleci/openjdk:8-jdk
+
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+      SBT_OPTS: -Xmx2G -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xss2M  -Duser.timezone=GMT
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - sbt-scala-cache-{{ checksum "build.sbt" }}-{{ checksum "project/build.properties" }}-{{ checksum "project/plugins.sbt" }}
+
+      - run:
+          name: Build and run tests
+          command: sbt clean test assembly
+
+      - save_cache:
+          paths: ["/home/circleci/.m2", "/home/circleci/.ivy2/cache", "/home/circleci/.coursier/cache", "/home/circleci/.sbt/launchers", "/home/circleci/.cache/coursier"]
+          key: sbt-scala-cache-{{ checksum "build.sbt" }}-{{ checksum "project/build.properties" }}-{{ checksum "project/plugins.sbt" }}
+
+      - persist_to_workspace:
+          root: ~/
+          paths: ["repo"]
+
+  publish_image:
+    <<: *defaults
+
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: ~/
+
+      - add_ssh_keys
+
+      - run:
+          name: Release tag
+          command: |
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            echo ${CIRCLE_BUILD_NUM} > last_tag
+            git tag ${CIRCLE_BUILD_NUM}
+            git push origin ${CIRCLE_BUILD_NUM}
+
+      - restore_cache:
+          keys:
+            - sbt-scala-cache-{{ checksum "build.sbt" }}-{{ checksum "project/build.properties" }}-{{ checksum "project/plugins.sbt" }}
+
+      - run:
+          name: Assembly jar
+          command: sbt assembly
+
+      - run:
+          name: Build docker image
+          command: |
+            TAG=0.1.${CIRCLE_BUILD_NUM}
+
+            docker build -t gabfssilva/fake-kms:${TAG} .
+
+      - run:
+          name: Push docker image to ECR
+          command: |
+            TAG=0.1.${CIRCLE_BUILD_NUM}
+
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker tag gabfssilva/fake-kms:${TAG} gabfssilva/fake-kms:latest
+
+            docker push gabfssilva/fake-kms:${TAG}
+            docker push gabfssilva/fake-kms:latest
+
+      - persist_to_workspace:
+          root: ~/
+          paths: ["repo"]
+
+workflows:
+  version: 2.1
+  build_and_deploy:
+    jobs:
+      - build
+      - publish_image:
+          filters:
+            branches:
+              only: ["master"]
+          requires:
+            - build
