@@ -1,7 +1,7 @@
 package endpoints
 
 import actions.KmsAction
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.Route
 import json.JsonFormats
 import software.amazon.awssdk.services.kms.KmsAsyncClient
 import software.amazon.awssdk.services.kms.model.{DecryptRequest, EncryptRequest}
@@ -11,11 +11,11 @@ class KmsEndpoint(kmsClient: KmsAsyncClient)
   extends AwsEndpoint
     with JsonFormats {
 
-  def encrypt: Route = xAmzTarget(KmsAction.Encrypt) { request: EncryptRequest =>
+  def encrypt: Route = kmsAction(KmsAction.Encrypt) { request: EncryptRequest =>
     complete(kmsClient.encrypt(request).toScala)
   }
 
-  def decrypt: Route = xAmzTarget(KmsAction.Decrypt) { request: DecryptRequest =>
+  def decrypt: Route = kmsAction(KmsAction.Decrypt) { request: DecryptRequest =>
     complete(kmsClient.decrypt(request).toScala)
   }
 
