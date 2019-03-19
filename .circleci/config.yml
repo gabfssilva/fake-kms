@@ -47,12 +47,20 @@ jobs:
       - add_ssh_keys
 
       - run:
+          name: Find tag
+          command: |
+            GIT_TAG=$(git tag -l | tail -1)
+
+            if [ "$GIT_TAG" == "" ]; then GIT_TAG=1; else GIT_TAG=$((GIT_TAG + 1)); fi
+
+            echo "export GIT_TAG=${GIT_TAG}" >> $BASH_ENV
+
+      - run:
           name: Release tag
           command: |
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-            echo ${CIRCLE_BUILD_NUM} > last_tag
-            git tag ${CIRCLE_BUILD_NUM}
-            git push origin ${CIRCLE_BUILD_NUM}
+            git tag ${GIT_TAG}
+            git push -u origin ${GIT_TAG}
 
       - restore_cache:
           keys:
@@ -65,19 +73,15 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            TAG=0.1.${CIRCLE_BUILD_NUM}
-
-            docker build -t gabfssilva/fake-kms:${TAG} .
+            docker build -t gabfssilva/fake-kms:${GIT_TAG} .
 
       - run:
           name: Push docker image to ECR
           command: |
-            TAG=0.1.${CIRCLE_BUILD_NUM}
-
             docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker tag gabfssilva/fake-kms:${TAG} gabfssilva/fake-kms:latest
+            docker tag gabfssilva/fake-kms:${GIT_TAG} gabfssilva/fake-kms:latest
 
-            docker push gabfssilva/fake-kms:${TAG}
+            docker push gabfssilva/fake-kms:${GIT_TAG}
             docker push gabfssilva/fake-kms:latest
 
       - persist_to_workspace:
