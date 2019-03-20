@@ -1,7 +1,9 @@
 package endpoints
 
 import actions.KmsAction
-import akka.http.scaladsl.server.{Directive1, Directives, Route}
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server._
+import io.circe.Json
 import utils.JsonSupport
 
 import scala.concurrent.ExecutionContext
@@ -12,11 +14,29 @@ trait Endpoint extends Directives with JsonSupport {
   def routes: Route
 }
 
-trait AwsEndpoint extends Endpoint {
-  def kmsAction[Req, Resp](action: KmsAction[Req, Resp]): Directive1[Req] =
-    post & headerValueByName("X-Amz-Target")
-      .map(KmsAction.withNameInsensitive)
-      .map(_.asInstanceOf[KmsAction[Req, Resp]])
-      .filter(_ == action)
-      .flatMap(a => entity(a.requestUnmarshaller))
+trait XAmzTargetSupport extends Endpoint {
+  private val headerName = "X-Amz-Target"
+
+  case class XAmzTargetNotImplemented(target: String) extends Rejection
+
+  val xAmzTargetNotImplementedHandler: RejectionHandler = RejectionHandler
+    .newBuilder()
+    .handle { case XAmzTargetNotImplemented(target) => complete(StatusCodes.BadRequest -> Json.obj("message" -> s"unknown $headerName $target")) }
+    .result()
+
+  def extractXAmzTarget[Req, Resp](action: KmsAction[Req, Resp]): Directive1[KmsAction[Req, Resp]] = {
+    def inner: Directive1[KmsAction[Req, Resp]] = headerValueByName(headerName)
+      .map(t => KmsAction.withNameInsensitiveOption(t) -> t)
+      .tflatMap {
+        case (Some(v), _) if v == action => provide(action)
+        case (Some(_), _)                => reject()
+        case (_, t)                      => reject(XAmzTargetNotImplemented(t))
+      }
+
+    inner & handleRejections(xAmzTargetNotImplementedHandler)
+  }
+}
+
+trait AwsEndpoint extends Endpoint with XAmzTargetSupport {
+  def kmsAction[Req, Resp](action: KmsAction[Req, Resp]): Directive1[Req] =  post & extractXAmzTarget(action).flatMap(a => entity(a.requestUnmarshaller))
 }
