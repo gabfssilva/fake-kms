@@ -3,9 +3,17 @@ package client
 import java.util.concurrent.CompletableFuture
 
 import software.amazon.awssdk.services.kms.KmsAsyncClient
-import software.amazon.awssdk.services.kms.model.{DecryptRequest, DecryptResponse, EncryptRequest, EncryptResponse}
+import software.amazon.awssdk.services.kms.model._
 
 class KmsAsyncClientLocal extends KmsAsyncClient {
+  override def createAlias(createAliasRequest: CreateAliasRequest): CompletableFuture[CreateAliasResponse] = {
+    def response: CreateAliasResponse = CreateAliasResponse
+      .builder()
+      .build()
+
+    CompletableFuture.completedFuture(response)
+  }
+
   override def encrypt(encryptRequest: EncryptRequest): CompletableFuture[EncryptResponse] = {
     def response: EncryptResponse = EncryptResponse
       .builder()

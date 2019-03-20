@@ -3,7 +3,7 @@ package json
 import domain.Base64
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import software.amazon.awssdk.core.SdkBytes
-import software.amazon.awssdk.services.kms.model.{DecryptRequest, DecryptResponse, EncryptRequest, EncryptResponse}
+import software.amazon.awssdk.services.kms.model._
 import utils.JsonSupport
 
 object JsonFormats extends JsonFormats
@@ -11,6 +11,7 @@ object JsonFormats extends JsonFormats
 trait JsonFormats
   extends EncryptJsonFormat
     with DecryptJsonFormat
+    with CreateAliasJsonFormat
 
 trait EncryptJsonFormat extends JsonSupport {
   implicit val encryptRequestDecoder: Decoder[EncryptRequest] = (c: HCursor) => for {
@@ -36,5 +37,15 @@ trait DecryptJsonFormat extends JsonSupport {
       "KeyId" -> response.keyId(),
       "Plaintext" -> response.plaintext().asUtf8String()
     )
+  }
+}
+
+trait CreateAliasJsonFormat extends JsonSupport {
+  implicit val createAliasRequestDecoder: Decoder[CreateAliasRequest] = (c: HCursor) => for {
+    aliasName <- c.downField("AliasName").as[String]
+  } yield CreateAliasRequest.builder().aliasName(aliasName).build()
+
+  implicit val createAliasResponseEncoder: Encoder[CreateAliasResponse] = (response: CreateAliasResponse) => {
+    Json.Null
   }
 }
