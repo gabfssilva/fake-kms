@@ -36,7 +36,11 @@ Basically, we used:
 
 If you check the docker image out, you'll see we're using [OpenJ9](https://github.com/eclipse/openj9), a low memory footprint JVM created by IBM and now maintained by Eclipse
  
+<<<<<<< HEAD
 ### Why are using OpenJ9?
+=======
+### Why are you using OpenJ9?
+>>>>>>> b9604b7b529075997d2317b4b1b8067387062d55
 
 Because the memory footprint of fake-kms on OpenJ9 is somewhere between 64 and 128mb
 

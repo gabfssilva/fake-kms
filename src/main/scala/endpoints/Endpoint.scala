@@ -30,8 +30,8 @@ trait XAmzTargetSupport extends Endpoint {
       .map(t => KmsAction.withNameInsensitiveOption(t) -> t)
       .tflatMap {
         case (Some(v), _) if v == action => provide(action)
-        case (Some(_), _)                => reject()
-        case (_, t)                      => reject(XAmzTargetNotImplemented(t))
+        case (Some(_), _) => reject()
+        case (_, t) => reject(XAmzTargetNotImplemented(t))
       }
 
     handleRejections(xAmzTargetNotImplementedHandler) & inner
@@ -39,7 +39,7 @@ trait XAmzTargetSupport extends Endpoint {
 }
 
 trait AwsEndpoint extends Endpoint with XAmzTargetSupport with CompletableFutureSupport {
-  def kmsAction[Req, Resp](action: KmsAction[Req, Resp]): Directive1[Req] =  post & extractXAmzTarget(action).flatMap(a => entity(a.requestUnmarshaller))
+  def kmsAction[Req, Resp](action: KmsAction[Req, Resp]): Directive1[Req] = post & extractXAmzTarget(action).flatMap(a => entity(a.requestUnmarshaller))
 
   def handleKmsAction[Req, Resp](action: KmsAction[Req, Resp])(f: Req => Future[Resp]): Route = {
     kmsAction(action) { req =>
