@@ -1,6 +1,8 @@
 package features
 
 import base.BaseKmsFeature
+import domain.Base64
+import security.Security.Encrypted
 import software.amazon.awssdk.core.SdkBytes
 import software.amazon.awssdk.services.kms.model.{EncryptRequest, EncryptResponse}
 
@@ -9,7 +11,8 @@ class KmsEncryptFeature extends BaseKmsFeature {
     scenario("successfully request encrypt request") {
       withEmbeddedServer(routes) { (host, port) =>
         withKmsClient(host, port) { kmsClient =>
-          val payload = "123"
+          val payload: String = Base64.encode("123").base64AsString
+          val encryptedPayload: Encrypted = cryptographyHandler.encrypt(payload)
 
           val result: EncryptResponse =
             kmsClient
@@ -22,7 +25,7 @@ class KmsEncryptFeature extends BaseKmsFeature {
               )
               .join
 
-          result.ciphertextBlob().asUtf8String() shouldBe payload
+          result.ciphertextBlob().asUtf8String() shouldBe encryptedPayload
         }
       }
     }

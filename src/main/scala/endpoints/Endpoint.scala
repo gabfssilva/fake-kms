@@ -1,12 +1,13 @@
 package endpoints
 
 import actions.KmsAction
+import akka.http.scaladsl.marshalling.ToResponseMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server._
 import io.circe.Json
-import utils.JsonSupport
+import utils.{CompletableFutureSupport, JsonSupport}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Endpoint extends Directives with JsonSupport {
   implicit val ec: ExecutionContext = ExecutionContext.global
@@ -33,10 +34,17 @@ trait XAmzTargetSupport extends Endpoint {
         case (_, t)                      => reject(XAmzTargetNotImplemented(t))
       }
 
-    inner & handleRejections(xAmzTargetNotImplementedHandler)
+    handleRejections(xAmzTargetNotImplementedHandler) & inner
   }
 }
 
-trait AwsEndpoint extends Endpoint with XAmzTargetSupport {
+trait AwsEndpoint extends Endpoint with XAmzTargetSupport with CompletableFutureSupport {
   def kmsAction[Req, Resp](action: KmsAction[Req, Resp]): Directive1[Req] =  post & extractXAmzTarget(action).flatMap(a => entity(a.requestUnmarshaller))
+
+  def handleKmsAction[Req, Resp](action: KmsAction[Req, Resp])(f: Req => Future[Resp]): Route = {
+    kmsAction(action) { req =>
+      implicit val m: ToResponseMarshaller[Resp] = action.toResponseMarshaller
+      complete(f(req))
+    }
+  }
 }

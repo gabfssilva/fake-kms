@@ -17,6 +17,9 @@ scalacOptions ++= Seq(
 assemblyJarName in assembly := "fake-kms-fat.jar"
 test in assembly := {}
 
+logBuffered in Test := false
+
+
 val akkaHttp = "10.1.7"
 val akka = "2.5.19"
 val heikoseebergerAkkaHttpCirce = "1.24.3"

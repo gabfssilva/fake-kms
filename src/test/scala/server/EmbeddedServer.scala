@@ -15,28 +15,17 @@ trait EmbeddedServer {
   implicit val materializer: ActorMaterializer
 
   def withEmbeddedServer(routes: Route)(test: (String, Int) => Any): Any = {
-    var retries = 0
-    var shouldRetry = false
+    val host = "localhost"
+    val socket = new ServerSocket(0)
+    val port = socket.getLocalPort
 
-    while(shouldRetry && retries < 20) {
-      val host = "localhost"
-      val socket = new ServerSocket(0)
-      val port = socket.getLocalPort
-
-      val server = Await.result(Http().bindAndHandle(routes, host, port), 20 seconds)
-
-      try {
-        test(host, port)
-      } catch { case _: Throwable =>
-        shouldRetry = true
-      } finally {
-        retries = retries + 1
-
-        Await.result(server.terminate(20 seconds), 20 seconds)
-
-        socket.close()
-        system.log.info(s"Server terminated")
-      }
-    }
+    socket.close()
+    val init = System.currentTimeMillis()
+    val server = Await.result(Http().bindAndHandle(routes, host, port), 20 seconds)
+    val end = System.currentTimeMillis()
+    system.log.info(s"Server running at $host:$port and took ${end - init} ms to start")
+    test(host, port)
+    Await.result(server.terminate(20 seconds), 20 seconds)
+    system.log.info(s"Server terminated")
   }
 }

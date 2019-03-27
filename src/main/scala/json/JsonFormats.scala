@@ -16,8 +16,8 @@ trait JsonFormats
 trait EncryptJsonFormat extends JsonSupport {
   implicit val encryptRequestDecoder: Decoder[EncryptRequest] = (c: HCursor) => for {
     keyId <- c.downField("KeyId").as[String]
-    plainText <- c.downField("Plaintext").as[String]
-  } yield EncryptRequest.builder().keyId(keyId).plaintext(SdkBytes.fromUtf8String(Base64(plainText).string)).build()
+    plainText <- c.downField("Plaintext").as[Base64]
+  } yield EncryptRequest.builder().keyId(keyId).plaintext(SdkBytes.fromUtf8String(plainText.unsafeDecoded)).build()
 
   implicit val encryptResponseEncoder: Encoder[EncryptResponse] = (response: EncryptResponse) => {
     Json.obj(
@@ -29,8 +29,8 @@ trait EncryptJsonFormat extends JsonSupport {
 
 trait DecryptJsonFormat extends JsonSupport {
   implicit val decryptRequestDecoder: Decoder[DecryptRequest] = (c: HCursor) => for {
-    blob <- c.downField("CiphertextBlob").as[String]
-  } yield DecryptRequest.builder().ciphertextBlob(SdkBytes.fromUtf8String(Base64(blob).string)).build()
+    blob <- c.downField("CiphertextBlob").as[Base64]
+  } yield DecryptRequest.builder().ciphertextBlob(SdkBytes.fromUtf8String(blob.base64AsString)).build()
 
   implicit val decryptResponseEncoder: Encoder[DecryptResponse] = (response: DecryptResponse) => {
     Json.obj(

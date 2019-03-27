@@ -1,5 +1,6 @@
 package actions
 
+import akka.http.scaladsl.marshalling.ToResponseMarshaller
 import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import enumeratum._
 import software.amazon.awssdk.services.kms.model._
@@ -7,7 +8,9 @@ import software.amazon.awssdk.services.kms.model._
 import scala.collection.immutable
 import json.JsonFormats._
 
-sealed abstract class KmsAction[Req, Resp](override val entryName: String)(implicit val requestUnmarshaller: FromRequestUnmarshaller[Req]) extends EnumEntry
+sealed abstract class KmsAction[Req, Resp](override val entryName: String)(implicit
+                                                                              val requestUnmarshaller: FromRequestUnmarshaller[Req],
+                                                                              val toResponseMarshaller: ToResponseMarshaller[Resp]) extends EnumEntry
 
 object KmsAction extends Enum[KmsAction[_, _]] {
   override val values: immutable.IndexedSeq[KmsAction[_, _]] = findValues
