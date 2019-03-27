@@ -13,7 +13,7 @@ object Application extends HttpApp with App {
   def kmsClient = new KmsAsyncClientLocal(cryptographyHandler)
   def kmsEndpoint = new KmsEndpoint(kmsClient)
 
-  override protected def routes: Route = kmsEndpoint.routes
+  override protected def routes: Route = kmsEndpoint.auditedRoutes
 
   startServer(hostname, port)
 }

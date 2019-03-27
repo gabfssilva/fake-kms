@@ -5,7 +5,7 @@ import akka.http.scaladsl.marshalling.ToResponseMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server._
 import io.circe.Json
-import utils.{CompletableFutureSupport, JsonSupport}
+import utils.{CompletableFutureSupport, JsonSupport, RouteLogging}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -13,6 +13,7 @@ trait Endpoint extends Directives with JsonSupport {
   implicit val ec: ExecutionContext = ExecutionContext.global
 
   def routes: Route
+  def auditedRoutes: Route = RouteLogging.loggableRoute(Route.seal(routes))
 }
 
 trait XAmzTargetSupport extends Endpoint {

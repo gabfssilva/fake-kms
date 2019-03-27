@@ -7,12 +7,20 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import client.KmsAsyncClientLocal
 import endpoints.KmsEndpoint
 import org.scalatest.{BeforeAndAfter, FeatureSpec, Matchers}
-import security.FakeCryptographyHandler
+import security.{CryptographyHandler, FakeCryptographyHandler}
 import server.EmbeddedServer
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.kms.KmsAsyncClient
 import utils.JsonSupport
+
+object BaseKmsFeature {
+  val cryptographyHandler = new FakeCryptographyHandler
+  val kmsClient = new KmsAsyncClientLocal(cryptographyHandler)
+  val kmsEndpoint = new KmsEndpoint(kmsClient)
+
+  val routes: Route = kmsEndpoint.auditedRoutes
+}
 
 trait BaseKmsFeature
   extends FeatureSpec
@@ -22,11 +30,8 @@ trait BaseKmsFeature
     with JsonSupport
     with EmbeddedServer {
 
-  val cryptographyHandler = new FakeCryptographyHandler
-  val kmsClient = new KmsAsyncClientLocal(cryptographyHandler)
-  val kmsEndpoint = new KmsEndpoint(kmsClient)
-
-  val routes: Route = Route.seal(kmsEndpoint.routes)
+  val cryptographyHandler: CryptographyHandler = BaseKmsFeature.cryptographyHandler
+  val routes: Route = BaseKmsFeature.routes
 
   def withKmsClient(host: String, port: Int)(f: KmsAsyncClient => Any): Any = {
     def kmsClient: KmsAsyncClient = KmsAsyncClient
